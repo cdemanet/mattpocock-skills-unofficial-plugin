@@ -7,7 +7,10 @@ const PKG = path.join(ROOT, 'pkg');
 
 const upstreamPkg = JSON.parse(fs.readFileSync(path.join(UPSTREAM, 'package.json'), 'utf8'));
 const upstreamManifest = JSON.parse(fs.readFileSync(path.join(UPSTREAM, '.claude-plugin', 'plugin.json'), 'utf8'));
-const PLUGIN_VERSION = process.env.PLUGIN_VERSION || upstreamPkg.version;
+const rootPkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+// Prefer PLUGIN_VERSION env, then root package.json pluginVersion (packaging-only
+// releases like 1.2.0-omp.1), then the upstream package version.
+const PLUGIN_VERSION = process.env.PLUGIN_VERSION || rootPkg.pluginVersion || upstreamPkg.version;
 
 // Clean and recreate the publish directory
 fs.rmSync(PKG, { recursive: true, force: true });

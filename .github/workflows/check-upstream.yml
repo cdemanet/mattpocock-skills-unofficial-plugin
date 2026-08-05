@@ -69,7 +69,17 @@ jobs:
           git fetch
           git checkout ${{ steps.check.outputs.latest }}
           cd ..
-          git add upstream
+          # Drop packaging-only version overrides so the new upstream version wins.
+          node -e "
+            const fs = require('node:fs');
+            const pkgPath = 'package.json';
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+            if (pkg.pluginVersion) {
+              delete pkg.pluginVersion;
+              fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+            }
+          "
+          git add upstream package.json
           git status --short
 
       - name: Build and verify

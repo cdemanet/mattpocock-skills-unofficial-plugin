@@ -69,14 +69,28 @@ npm run publish-plugin
 
 ## Packaging-only fixes
 
-If the wrapper itself needs a fix independent of an upstream release (e.g., a packaging bug), use a qualifier so the base upstream version stays clear:
+If the wrapper itself needs a fix independent of an upstream release (e.g., a packaging bug), use a qualifier so the base upstream version stays clear.
+
+Preferred (works with CI publish on push to `main`):
 
 ```bash
-PLUGIN_VERSION=1.1.0-omp.1 npm run build
+# Set in the root package.json, then commit and push
+"pluginVersion": "1.2.0-omp.1"
+```
+
+Local fallback:
+
+```bash
+PLUGIN_VERSION=1.2.0-omp.1 npm run build
 npm run publish-plugin
 ```
 
-The qualifier resets on each upstream release. See `CONTEXT.md` for the domain glossary.
+Version resolution order in `scripts/build.js`:
+1. `PLUGIN_VERSION` env
+2. root `package.json` `pluginVersion`
+3. upstream `package.json` `version`
+
+`check-upstream.yml` clears `pluginVersion` when opening an upstream bump PR so the next release uses the plain upstream version again.
 
 ## Secrets
 
@@ -86,7 +100,7 @@ The qualifier resets on each upstream release. See `CONTEXT.md` for the domain g
 
 - Never edit the upstream manifest (`upstream/.claude-plugin/plugin.json`) or skill files. This repo is a distribution, not a transformation.
 - `pkg/` is generated and gitignored. Do not commit it.
-- The published package version comes from `upstream/package.json`, not the root `package.json`.
+- The published package version comes from `PLUGIN_VERSION` / root `pluginVersion` / upstream `package.json` (in that order). The root `version` field is only for the private dev wrapper.
 - The root `package.json` is a dev wrapper and is not published.
 - Publishing requires 2FA via the npm automation token in CI; local publishing requires an interactive OTP.
 - Merging a PR created by `check-upstream.yml` will trigger `publish.yml`, because the merge is done by a human account (not the GitHub Actions bot).
