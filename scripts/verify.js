@@ -28,16 +28,35 @@ if (fs.existsSync(packageJsonPath)) {
   assert(typeof pkg.version === 'string' && pkg.version.length > 0, 'Package version must be set');
   assert(pkg.private === undefined, 'Package must not have a "private" flag');
   assert(pkg.publishConfig?.access === 'public', 'Package must have publishConfig.access set to "public"');
+  assert(pkg.omp && typeof pkg.omp === 'object', 'Package manifest must have an "omp" field');
+  assert(
+    typeof pkg.omp.name === 'string' && pkg.omp.name.length > 0,
+    'OMP manifest "omp.name" must be a non-empty string'
+  );
+  assert(
+    typeof pkg.omp.version === 'string' && pkg.omp.version.length > 0,
+    'OMP manifest "omp.version" must be a non-empty string'
+  );
+  const ompSkills = pkg.omp.skills;
+  assert(
+    (typeof ompSkills === 'string' && ompSkills.length > 0) ||
+    (Array.isArray(ompSkills) && ompSkills.length > 0),
+    'OMP manifest "omp.skills" must be a non-empty string or array'
+  );
 }
 
-// plugin manifest checks
+// Claude plugin manifest checks
 const pluginManifestPath = path.join(PKG_DIR, '.claude-plugin', 'plugin.json');
-assertExists(pluginManifestPath, 'plugin manifest');
+assertExists(pluginManifestPath, 'Claude plugin manifest');
 
 if (fs.existsSync(pluginManifestPath)) {
   const manifest = readJson(pluginManifestPath);
-  assert(typeof manifest.name === 'string' && manifest.name.length > 0, 'Plugin manifest must have a name');
-  assert(Array.isArray(manifest.skills) && manifest.skills.length > 0, 'Plugin manifest must list skills');
+  assert(typeof manifest.name === 'string' && manifest.name.length > 0, 'Claude plugin manifest must have a name');
+  assert(typeof manifest.version === 'string' && manifest.version.length > 0, 'Claude plugin manifest must have a version');
+  assert(
+    typeof manifest.skills === 'string' && manifest.skills.length > 0,
+    'Claude plugin manifest "skills" must be a non-empty string path'
+  );
 }
 
 // skills tree checks
@@ -45,8 +64,13 @@ const skillsDir = path.join(PKG_DIR, 'skills');
 assertExists(skillsDir, 'skills directory');
 
 if (fs.existsSync(skillsDir)) {
-  const topLevelEntries = fs.readdirSync(skillsDir, { withFileTypes: true });
-  assert(topLevelEntries.some(e => e.isDirectory()), 'skills directory must contain at least one category directory');
+  const skillDirs = fs.readdirSync(skillsDir, { withFileTypes: true }).filter(e => e.isDirectory());
+  assert(skillDirs.length > 0, 'skills directory must contain at least one skill directory');
+
+  for (const entry of skillDirs) {
+    const skillPath = path.join(skillsDir, entry.name, 'SKILL.md');
+    assertExists(skillPath, `SKILL.md for skill "${entry.name}"`);
+  }
 }
 
 // documentation and license checks
